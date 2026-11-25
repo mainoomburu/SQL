@@ -12,7 +12,8 @@ where audit.true_water_source_score = quali.subjective_quality_score
 and vis.visit_count = 1
 limit 10000;
 
--- to understand duplicated data
+-- to understand our data to see if there is a difference in scores
+-- for this we compare the quality scores. The ones not equal are shown as duplicated data
 select
 	audit.location_id as auditor_location,
 	audit.type_of_water_source as audit_recording_source,
@@ -26,7 +27,7 @@ join water_source as sos on vis.source_id = sos.source_id
 join water_quality as quali on vis.record_id = quali.record_id 
 where audit.true_water_source_score != quali.subjective_quality_score;
 
--- we now look at the employees who made these errors
+-- we now look at the employees who made these errors in recording the data
 with incorrect_records as(
 select
 	audit.location_id as auditor_location,
@@ -46,7 +47,7 @@ select
 distinct employee_name
 from incorrect_records;
 
--- but a CTE can not easily be called or used easily
+-- but a CTE can not easily be called or used outside its statement
 -- so we create a view
 create view Inconsistent_records as
 select
@@ -66,8 +67,7 @@ and vis.visit_count = 1;
 
 -- to count number of mistakes made by an employee
 create view counting_errors as
-select
-employee_name,
+select employee_name,
 count(employee_name) as number_of_mistakes
 from inconsistent_records
 group by employee_name;
@@ -82,8 +82,7 @@ where emp1.number_of_mistakes > (select avg(emp2.number_of_mistakes)
 								from counting_errors as emp2)
 ),
 classified as(
-select
-*
+select*
 from inconsistent_records
 )
 select*
@@ -101,11 +100,13 @@ from counting_errors as emp1
 where emp1.number_of_mistakes > (select avg(emp2.number_of_mistakes)
 								from counting_errors as emp2);
 
+-- finding employees who have been soliciting cash and destroying the reputation of our company
 select*
 from inconsistent_records
 where employee_name in (select employee_name from suspect_list)
 and statements like '%cash%';
 
+-- to confirm whether there are other employees soliciting cash and they are not part of the suspect
 select*
 from inconsistent_records
 where statements like '%cash%'
